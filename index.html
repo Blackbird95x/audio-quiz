@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audio-Zuordnungsspiel</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 2rem;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      max-width: 1000px;
+      margin-bottom: 2rem;
+    }
+
+    .column {
+      flex: 1;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .box {
+      background: #222;
+      padding: 1rem;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 300px;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 2px solid #444;
+    }
+
+    .word {
+      padding: 0.5rem 1rem;
+      background: #3377cc;
+      color: white;
+      border-radius: 6px;
+      cursor: grab;
+      user-select: none;
+      text-align: center;
+      width: 80%;
+      margin: 0.5rem 0;
+    }
+
+    .audio {
+      background: #444;
+      color: #fff;
+      border: 2px dashed #777;
+      border-radius: 6px;
+      width: 90%;
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      min-height: 40px;
+      font-size: 0.9rem;
+    }
+
+    .audio.wrong {
+      border-color: red;
+      background-color: #331d1d;
+    }
+
+    .pair-box {
+      margin-top: 2rem;
+      background: #1a1a1a;
+      border: 2px dashed #555;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 800px;
+      padding: 1rem;
+      min-height: 150px;
+    }
+
+    .pair {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0.5rem 0;
+      gap: 1rem;
+      font-size: 1rem;
+    }
+
+    .arrow {
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Ziehe die Begriffe auf das passende Audio</h1>
+
+  <div class="row">
+    <div class="column">
+      <div class="box" id="word-box"></div>
+    </div>
+    <div class="column">
+      <div class="box" id="audio-box"></div>
+    </div>
+  </div>
+
+  <div class="pair-box" id="pair-box">
+    <h3>✔️ Richtig zugeordnete Paare</h3>
+  </div>
+
+  <script>
+    const begriffeOriginal = [
+      "Affe", "Außerirdischer", "Gewitter", "Meer", "Münzen",
+      "Raketenstart", "Schatzkiste", "Schwert", "Vögel"
+    ];
+
+    function shuffle(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+    return array;
+    }
+
+
+    const wordBox = document.getElementById("word-box");
+    const audioBox = document.getElementById("audio-box");
+    const pairBox = document.getElementById("pair-box");
+
+    const begriffe = shuffle([...begriffeOriginal]);
+    const audioRefs = shuffle([...begriffeOriginal]);
+
+    let completed = 0;
+
+    // Begriffe erstellen
+    begriffe.forEach(word => {
+      const div = document.createElement("div");
+      div.className = "word";
+      div.textContent = word;
+      div.id = "word-" + word;
+      div.draggable = true;
+
+      div.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", word);
+      });
+
+      wordBox.appendChild(div);
+    });
+
+    // Audio-Zonen erstellen
+    audioRefs.forEach((word, index) => {
+      const audioLabel = "Audio " + (index + 1);
+
+      const div = document.createElement("div");
+      div.className = "audio";
+      div.id = "audio-" + word;
+
+      div.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+          <strong>${audioLabel}</strong>
+          <button style="padding: 0.25rem 0.5rem;" onclick="new Audio('assets/audio/${word}.mp3').play()">▶️</button>
+        </div>
+      `;
+
+      div.addEventListener("dragover", e => e.preventDefault());
+
+      div.addEventListener("drop", e => {
+        e.preventDefault();
+        const draggedWord = e.dataTransfer.getData("text/plain");
+
+        if (draggedWord === word) {
+          const draggedEl = document.getElementById("word-" + draggedWord);
+          draggedEl.remove();
+          div.remove();
+
+          const pairDiv = document.createElement("div");
+          pairDiv.className = "pair";
+          pairDiv.innerHTML = `<div><strong>${audioLabel}</strong></div> <div class="arrow">➡️</div> <div>${draggedWord}</div>`;
+          pairBox.appendChild(pairDiv);
+
+          completed++;
+          if (completed === 9) {
+            setTimeout(() => alert("🎉 Alle Paare richtig zugeordnet!\nDein Code lautet: 1234"), 300);
+          }
+        } else {
+          div.classList.add("wrong");
+          setTimeout(() => div.classList.remove("wrong"), 1000);
+        }
+      });
+
+      audioBox.appendChild(div);
+    });
+
+    // Begrüßungs-Popup beim Laden
+    window.onload = () => {
+      alert("🎯 Willkommen zum Audio-Zuordnungsspiel!\n\nZiehe die Begriffe links auf die passenden Audios rechts.\nSind alle 9 Paare korrekt, erhältst du den geheimen Code.");
+    };
+  </script>
+</body>
+</html>
